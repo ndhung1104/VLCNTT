@@ -25,7 +25,7 @@ TFT_22_ILI9225 tft = TFT_22_ILI9225(TFT_RST, TFT_RS, TFT_CS, TFT_LED, TFT_BRIGHT
 DHT dht(DHT11_PIN, DHTTYPE);
 float temp = 0;
 float humi = 0;
-
+bool pir = 0;
 //MENU
 int lastPotValue = -1;
 int lastButtonState = HIGH;
@@ -37,29 +37,77 @@ int currentOption = 0;
 bool buttonPressed = false;
 bool pirPin = false;
 int selectedSong = 0;
-
+bool ledStatus = 0;
 bool inStatusView = false;
 
 // Nhac
-const char* songs[] = {"Bai 1", "Bai 2", "Bai 3"};
-const int melody1[] = {262, 294, 330, 349};
-const int melody2[] = {330, 294, 262, 330};
-const int melody3[] = {392, 370, 349, 330};
+// const char* songs[] = {"Happy Birthday", "Happy New Year", "Merry Christmas"};
+const char* songs[] = {
+  "Happy Birthday",
+  "Happy New Year",
+  "Merry Christmas"
+};
+// const int melody1[] = {262, 294, 330, 349};
+// const int melody2[] = {330, 294, 262, 330};
+// const int melody3[] = {392, 370, 349, 330};
 
-const int *melodies[] = {melody1, melody2, melody3};
-const int melodyLengths[] = {4, 4, 4};
+// const int *melodies[] = {melody1, melody2, melody3};
+// const int melodyLengths[] = {4, 4, 4};
+
+const int melody1[] = {
+  262, 262, 294, 262, 349, 330,
+  262, 262, 294, 262, 392, 349,
+  262, 262, 523, 440, 349, 330, 294,
+  466, 466, 440, 349, 392, 349
+};
+const int length1 = sizeof(melody1) / sizeof(melody1[0]);
+
+// ==================== Happy New Year ====================
+// Phiên bản giai điệu đơn giản
+// G   G   A   G   C5  B
+// G   G   A   G   D5  C5
+// G   G   G5  E5  C5  B   A
+// F5  F5  E5  C5  D5  C5
+const int melody2[] = {
+  392, 392, 440, 392, 523, 494,
+  392, 392, 440, 392, 587, 523,
+  392, 392, 784, 659, 523, 494, 440,
+  698, 698, 659, 523, 587, 523
+};
+const int length2 = sizeof(melody2) / sizeof(melody2[0]);
+
+// ==================== We Wish You a Merry Christmas ====================
+// B   E   E   F#  G   G   F#  E   D   C   C
+// F#  G   G   F#  E   D   D   E   A   A
+// B   E   E   F#  G   G   F#  E   D   C   C
+// F#  G   G   F#  E   D   D   E   D   C
+const int melody3[] = {
+  494, 659, 659, 740, 784, 784, 740, 659, 587, 523, 523,
+  740, 784, 784, 740, 659, 587, 587, 659, 880, 880,
+  494, 659, 659, 740, 784, 784, 740, 659, 587, 523, 523,
+  740, 784, 784, 740, 659, 587, 587, 659, 587, 523
+};
+const int length3 = sizeof(melody3) / sizeof(melody3[0]);
+
+// ==================== Ma trận bài hát ====================
+const int* melodies[] = {melody1, melody2, melody3};
+const int melodyLengths[] = {length1, length2, length3};
 bool isPlaying = false;
 unsigned long noteStartTime = 0;
 int currentNote = 0;
 int noteDuration = 300; // Thời lượng mỗi nốt
-
+int autoLedMode = 0;
+int ledTimeout = 5000;
 
 // ——— thêm biến cho giao tiếp và remote control ———
 bool remoteEnabled      = false;             // cờ bật/tắt nhận lệnh từ ESP
 unsigned long lastComm  = 0;
 unsigned long lastSend  = 0;
+unsigned long lastHelloMillis = 0;
+unsigned long lastTimeout = 0;
 const unsigned long commInterval = 200;      // check mỗi 200ms
 const unsigned long sendInterval = 5000;     // gửi data mỗi 5s
+const unsigned long helloInterval = 500; // ms
 // Số menu phụ
 enum MenuLevels {
   MAIN_MENU = 0,
@@ -68,7 +116,6 @@ enum MenuLevels {
   LED_MENU = 3,
   STATUS_MENU = 4
 };
-
 
 
 void setup() {
@@ -91,28 +138,29 @@ void setup() {
   
   displayMenu();
 
-  while (!espReady) {
-    Serial1.println("HELLO_ESP");
-    Serial.println("[Mega] Waiting for READY...");
-    delay(500);
-
-    if (Serial1.available()) {
-      String msg = Serial1.readStringUntil('\n');
-      msg.trim();
-      if (msg == "READY") {
-        espReady = true;
-        Serial.println("[Mega] ESP is ready!");
-      }
-    }
-  }
-
   Serial.println("Setup completed!");
+}
+
+void toggleLed(bool direction)
+{
+  if (ledStatus != direction)
+  {
+    digitalWrite(ledPin, HIGH);
+    delay(200);
+    digitalWrite(ledPin, LOW);
+    ledStatus = direction;
+  }
 }
 
 void readDHT()
 {
   temp = dht.readTemperature();
   humi = dht.readHumidity();
+}
+
+void readPIR()
+{
+  pir = digitalRead(PIR_PIN);
 }
 
 void startPlayingSong() {
@@ -150,7 +198,8 @@ void handleRemoteComm(float temp, float humi){
     Serial1.print(temp, 1);    // 1 chữ số thập phân
     Serial1.print(",HUM:");
     Serial1.print(humi, 0);  // println sẽ thêm '\n'
-    Serial1.println(",PIR:1");
+    Serial1.print(",PIR:");
+    Serial1.println(pir, 0);
     lastSend = now;
   }
   
@@ -169,13 +218,15 @@ void handleRemoteComm(float temp, float humi){
     cmd.trim();
     if(!remoteEnabled) continue;
 
-    if(cmd == "LED:TOGGLE") {
-      digitalWrite(LED_PIN, HIGH);
-      delay(200);
-      digitalWrite(LED_PIN, LOW);
+    if(cmd == "LED:ON" && autoLedMode == 0) {
+      toggleLed(1);
+      lastTimeout = millis();
+    }
+    else if (cmd == "LED:OFF" && autoLedMode == 0) {
+      toggleLed(0);
     }
     else if(cmd.startsWith("BUZZER:PLAY:")){
-      int id = cmd.substring(12).toInt();
+      int id = cmd.substring(12).toInt() - 1;
       if(id >= 0 && id < sizeof(melodies)/sizeof(melodies[0])){
         selectedSong = id;
         startPlayingSong();
@@ -186,14 +237,65 @@ void handleRemoteComm(float temp, float humi){
       noTone(BUZZER_PIN);
       digitalWrite(BUZZER_PIN, HIGH);
     }
+    else if (cmd.startsWith("LED:AUTO:")){
+      int id = cmd.substring(9).toInt();
+      if (id >= 0 && id <= 1){
+        autoLedMode = id;
+      }
+      lastTimeout = millis();
+    }
+    else if (cmd.startsWith("TIMEOUT:")){
+      int id = cmd.substring(8).toInt();
+      if (id >= 0){
+        ledTimeout = id;
+      }
+      lastTimeout = millis();
+    }
+  }
+}
+
+void checkAutoMode()
+{
+  if (autoLedMode)
+  {
+    if (pir)
+    {
+      toggleLed(1);
+      lastTimeout = millis();
+    }
+    else if (ledStatus && (millis() - lastTimeout > ledTimeout))
+    {
+      toggleLed(0);
+    }
   }
 }
 
 void loop() {
+  // if (!espReady && millis() - lastHelloMillis >= helloInterval) {
+  //   lastHelloMillis = millis();
+  //   Serial1.println("HELLO_ESP");
+  //   Serial.println("[Mega] Waiting for READY...");
+  // }
+
+  // // Kiểm tra phản hồi từ ESP
+  // if (!espReady && Serial1.available()) {
+  //   String msg = Serial1.readStringUntil('\n');
+  //   msg.trim();
+  //   if (msg == "READY") {
+  //     espReady = true;
+  //     Serial.println("[Mega] ESP is ready!");
+  //   }
+  // }
+  checkAutoMode();
   readDHT();
+  readPIR();
   readPot();
   checkButton();
   updateSongPlayback();
+  // if(espReady)
+  // {
+  //   handleRemoteComm(temp, humi);
+  // }
   handleRemoteComm(temp, humi);
   delay(10);
 }
@@ -235,7 +337,7 @@ int getMenuItemCount() {
     case MAIN_MENU: return 4;
     case MUSIC_MENU: return 4;
     case MUSIC_SELECT: return sizeof(songs) / sizeof(songs[0]);
-    case LED_MENU: return 2; // Đổi trạng thái, Quay lại
+    case LED_MENU: return 5; // Bat tat led, bat tat auto, quay lai
     case STATUS_MENU: return 1;
     default: return 0;
   }
@@ -328,8 +430,8 @@ void displayMenu() {
     }
 
     case LED_MENU: {
-      const char* items[] = {"Doi trang thai LED", "Quay lai"};
-      for (int i = 0; i < 2; i++) {
+      const char* items[] = {"Bat LED", "Tat LED", "Bat Automode", "Tat Automode", "Quay lai"};
+      for (int i = 0; i < 5; i++) {
         bool selected = (i == currentOption);
         Serial.println(selected ? String("> ") + items[i] : String("  ") + items[i]);
         tft.drawText(10, y, items[i], selected ? COLOR_YELLOW : COLOR_WHITE);
@@ -409,11 +511,27 @@ void handleSelection() {
 
     case LED_MENU:
       if (currentOption == 0) {
-        digitalWrite(LED_PIN, HIGH);
-        delay(200);
-        digitalWrite(LED_PIN, LOW);
-        Serial.println("Da toggle LED.");
-      } else if (currentOption == 1) {
+        if (autoLedMode == 0){
+          lastTimeout = millis();
+          toggleLed(1);
+        }
+        displayMenu();
+      }
+      else if (currentOption == 1){
+        if (autoLedMode == 0){
+          toggleLed(0);
+        }
+        displayMenu();
+      }
+      else if (currentOption == 2){
+        autoLedMode = 1;
+        displayMenu();
+      }
+      else if (currentOption == 3){
+        autoLedMode = 0;
+        displayMenu();
+      }
+      else if (currentOption == 4) {
         menuLevel = MAIN_MENU;
         // currentOption = 0;
         displayMenu();
