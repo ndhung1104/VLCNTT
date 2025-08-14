@@ -35,7 +35,6 @@ unsigned long debounceDelay = 50;
 int menuLevel = 0;
 int currentOption = 0;
 bool buttonPressed = false;
-bool pirPin = false;
 int selectedSong = 0;
 bool ledStatus = 0;
 bool inStatusView = false;
@@ -145,9 +144,9 @@ void toggleLed(bool direction)
 {
   if (ledStatus != direction)
   {
-    digitalWrite(ledPin, HIGH);
+    digitalWrite(LED_PIN, HIGH);
     delay(200);
-    digitalWrite(ledPin, LOW);
+    digitalWrite(LED_PIN, LOW);
     ledStatus = direction;
   }
 }

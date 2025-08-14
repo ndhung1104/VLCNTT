@@ -321,14 +321,17 @@ void loop() {
           int tIdx = serialBuffer.indexOf("TEMP:");
           int hIdx = serialBuffer.indexOf("HUM:");
           int pIdx = serialBuffer.indexOf("PIR:");
+          int lIdx = serialBuffer.indexOf("LED:");
 
           float temp = serialBuffer.substring(tIdx + 5, hIdx - 1).toFloat();
           float hum  = serialBuffer.substring(hIdx + 4, pIdx - 1).toFloat();
           int pir    = serialBuffer.substring(pIdx + 4).toInt();
+          int led    = serialBuffer.substring(lIdx + 4).toInt();
 
           Firebase.setFloat(fbdo, String(basePath) + "/temperature", temp);
           Firebase.setFloat(fbdo, String(basePath) + "/humidity", hum);
-          Firebase.setInt(fbdo, String(basePath) + "/pir", pir);
+          Firebase.setInt(fbdo, String(basePath) + "/motion", pir);
+          Firebase.setInt(fbdo, String(basePath) + "/light", led);
 
         } else {
           Serial.println("[ESP] Discard invalid data: " + serialBuffer);

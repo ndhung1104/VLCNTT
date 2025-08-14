@@ -1,6 +1,6 @@
 <mxfile host="65bd71144e">
     <diagram id="SDUCsIFCprQqo3zhPazO" name="Page-1">
-        <mxGraphModel dx="485" dy="549" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+        <mxGraphModel dx="486" dy="467" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
             <root>
                 <mxCell id="0"/>
                 <mxCell id="1" parent="0"/>
@@ -135,7 +135,7 @@
                 <mxCell id="PyUKFxqLLR8SMniEjXXt-63" value="&lt;b&gt;nodes&lt;/b&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
                     <mxGeometry y="690" width="60" height="30" as="geometry"/>
                 </mxCell>
-                <mxCell id="54" value="" style="curved=1;endArrow=classic;html=1;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="5" target="5">
+                <mxCell id="54" value="" style="curved=1;endArrow=classic;html=1;exitX=0;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=1;entryDx=0;entryDy=0;" parent="1" source="5" target="5" edge="1">
                     <mxGeometry width="50" height="50" relative="1" as="geometry">
                         <mxPoint x="240" y="390" as="sourcePoint"/>
                         <mxPoint x="290" y="340" as="targetPoint"/>
@@ -145,8 +145,11 @@
                         </Array>
                     </mxGeometry>
                 </mxCell>
-                <mxCell id="55" value="Host WIFI và lưu dữ liệu WIFI người dùng nhập" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+                <mxCell id="55" value="Host WIFI và lưu dữ liệu WIFI người dùng nhập" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
                     <mxGeometry x="130" y="450" width="130" height="30" as="geometry"/>
+                </mxCell>
+                <mxCell id="56" value="String" style="resizable=0;html=1;align=center;verticalAlign=top;labelBackgroundColor=none;fontFamily=Times New Roman;fontSize=13;fontStyle=1" connectable="0" vertex="1" parent="1">
+                    <mxGeometry x="194.9996649562693" y="490.00134970692125" as="geometry"/>
                 </mxCell>
             </root>
         </mxGraphModel>
