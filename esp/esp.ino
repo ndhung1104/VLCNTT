@@ -325,7 +325,7 @@ void loop() {
 
           float temp = serialBuffer.substring(tIdx + 5, hIdx - 1).toFloat();
           float hum  = serialBuffer.substring(hIdx + 4, pIdx - 1).toFloat();
-          int pir    = serialBuffer.substring(pIdx + 4).toInt();
+          int pir    = serialBuffer.substring(pIdx + 4, lIdx - 1).toInt();
           int led    = serialBuffer.substring(lIdx + 4).toInt();
 
           Firebase.setFloat(fbdo, String(basePath) + "/temperature", temp);
